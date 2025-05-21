@@ -1,118 +1,15 @@
 <template>
-  <view-common-header
+  <dialog-header
+    v-if="dialog"
+    :assistant="assistant"
+    :model="model"
+    :dialog="dialog"
+    :workspace="workspace"
     @toggle-drawer="$emit('toggle-drawer')"
-    @contextmenu="createDialog"
-  >
-    <div>
-      <assistant-item
-        clickable
-        :assistant
-        v-if="dialog"
-        text-base
-        item-rd
-        py-1
-        min-h-0
-      />
-      <q-menu>
-        <q-list>
-          <assistant-item
-            clickable
-            v-for="a in assistants"
-            :key="a.id"
-            :assistant="a"
-            @click="dialog.assistantId = a.id"
-            v-close-popup
-            py-1.5
-            min-h-0
-          />
-        </q-list>
-      </q-menu>
-    </div>
-    <div
-      v-if="model"
-      text-on-sur-var
-      my-2
-      of-hidden
-      whitespace-nowrap
-      text-ellipsis
-      cursor-pointer
-    >
-      <q-icon
-        name="sym_o_neurology"
-        size="24px"
-      />
-      <code
-        bg-sur-c-high
-        px="6px"
-        py="3px"
-        text="xs"
-      >{{ model.name }}</code>
-      <q-menu important:max-w="300px">
-        <q-list>
-          <template v-if="assistant.model">
-            <q-item-label
-              header
-              pb-2
-            >
-              {{ $t('dialogView.assistantModel') }}
-            </q-item-label>
-            <model-item
-              v-if="assistant.model"
-              :model="assistant.model.name"
-              @click="dialog.modelOverride = null"
-              :selected="!dialog.modelOverride"
-              clickable
-              v-close-popup
-            />
-          </template>
-          <template v-else-if="perfs.model">
-            <q-item-label
-              header
-              pb-2
-            >
-              {{ $t('dialogView.globalDefault') }}
-            </q-item-label>
-            <model-item
-              v-if="perfs.model"
-              :model="perfs.model.name"
-              @click="dialog.modelOverride = null"
-              :selected="!dialog.modelOverride"
-              clickable
-              v-close-popup
-            />
-          </template>
-          <q-separator spaced />
-          <q-item-label
-            header
-            py-2
-          >
-            {{ $t('dialogView.commonModels') }}
-          </q-item-label>
-          <a-tip
-            tip-key="configure-common-models"
-            rd-0
-          >
-            {{ $t('dialogView.modelsConfigGuide1') }}<router-link
-              to="/settings"
-              pri-link
-            >
-              {{ $t('dialogView.settings') }}
-            </router-link> {{ $t('dialogView.modelsConfigGuide2') }}
-          </a-tip>
-          <model-item
-            v-for="m of perfs.commonModelOptions"
-            :key="m"
-            clickable
-            :model="m"
-            @click="dialog.modelOverride = models.find(model => model.name === m) || { name: m, inputTypes: InputTypes.default }"
-            :selected="dialog.modelOverride?.name === m"
-            v-close-popup
-          />
-        </q-list>
-      </q-menu>
-    </div>
-    <q-space />
-  </view-common-header>
+    @create-dialog="createDialog"
+    @update:assistant="dialog.assistantId = $event"
+    @update:model="dialog.modelOverride = $event"
+  />
   <q-page-container
     bg-sur-c-low
     v-if="dialog"
@@ -160,230 +57,29 @@
         p-2
         pos-relative
       >
-        <div
-          v-if="inputMessageContent?.items.length"
-          pos-absolute
-          z-3
-          top-0
-          left-0
-          translate-y="-100%"
-          flex
-          items-end
-          p-2
-          gap-2
-        >
-          <message-image
-            v-for="image in inputContentItems.filter(i => i.mimeType?.startsWith('image/'))"
-            :key="image.id"
-            :image
-            removable
-            h="100px"
-            @remove="removeItem(image)"
-            shadow
-          />
-          <message-file
-            v-for="file in inputContentItems.filter(i => !i.mimeType?.startsWith('image/'))"
-            :key="file.id"
-            :file
-            removable
-            @remove="removeItem(file)"
-            shadow
-          />
-        </div>
-        <div
-          v-if="isPlatformEnabled(perfs.dialogScrollBtn)"
-          pos-absolute
-          top--1
-          right-2
-          flex="~ col"
-          text-sec
-          translate-y="-100%"
-          z-1
-        >
-          <q-btn
-            flat
-            round
-            dense
-            icon="sym_o_first_page"
-            rotate-90
-            @click="scroll('top')"
-          />
-          <q-btn
-            flat
-            round
-            dense
-            icon="sym_o_keyboard_arrow_up"
-            @click="scroll('up')"
-          />
-          <q-btn
-            flat
-            round
-            dense
-            icon="sym_o_keyboard_arrow_down"
-            @click="scroll('down')"
-          />
-          <q-btn
-            flat
-            round
-            dense
-            icon="sym_o_last_page"
-            rotate-90
-            @click="scroll('bottom')"
-          />
-        </div>
-        <div
-          flex
-          flex-wrap
-          justify-end
-          text-sec
-          items-center
-        >
-          <q-btn
-            v-if="model && mimeTypeMatch('image/webp', model.inputTypes.user)"
-            flat
-            icon="sym_o_image"
-            :title="$t('dialogView.addImage')"
-            round
-            min-w="2.7em"
-            min-h="2.7em"
-            @click="imageInput.click()"
-          >
-            <input
-              ref="imageInput"
-              type="file"
-              multiple
-              accept="image/*"
-              @change="onInputFiles"
-              un-hidden
-            >
-          </q-btn>
-          <q-btn
-            flat
-            icon="sym_o_folder"
-            :title="$t('dialogView.addFile')"
-            round
-            min-w="2.7em"
-            min-h="2.7em"
-            @click="fileInput.click()"
-          >
-            <input
-              ref="fileInput"
-              type="file"
-              multiple
-              accept="*"
-              @change="onInputFiles"
-              un-hidden
-            >
-          </q-btn>
-          <q-btn
-            v-if="assistant?.promptVars.length"
-            flat
-            icon="sym_o_tune"
-            :title="showVars ? $t('dialogView.hideVars') : $t('dialogView.showVars')"
-            round
-            min-w="2.7em"
-            min-h="2.7em"
-            @click="showVars = !showVars"
-            :class="{ 'text-ter': showVars }"
-          />
-          <model-options-btn
-            v-if="sdkModel"
-            :provider-name="sdkModel.provider"
-            :model-id="sdkModel.modelId"
-            v-model="modelOptions"
-            flat
-            round
-            min-w="2.7em"
-            min-h="2.7em"
-          />
-          <add-info-btn
-            :plugins="activePlugins"
-            :assistant-plugins="assistant.plugins"
-            @add="addInputItems"
-            flat
-            round
-            min-w="2.7em"
-            min-h="2.7em"
-          />
-          <q-btn
-            v-if="assistant"
-            flat
-            :round="!activePlugins.length"
-            :class="{ 'px-2': activePlugins.length }"
-            min-w="2.7em"
-            min-h="2.7em"
-            icon="sym_o_extension"
-            :title="$t('dialogView.plugins')"
-          >
-            <code
-              v-if="activePlugins.length"
-              bg-sur-c-high
-              px="6px"
-            >{{ activePlugins.length }}</code>
-            <enable-plugins-menu :assistant-id="assistant.id" />
-          </q-btn>
-          <q-space />
-          <div
-            v-if="usage"
-            my-2
-            ml-2
-          >
-            <q-icon
-              name="sym_o_generating_tokens"
-              size="24px"
-            />
-            <code
-              bg-sur-c-high
-              px-2
-              py-1
-            >{{ usage.promptTokens }}+{{ usage.completionTokens }}</code>
-            <q-tooltip>
-              {{ $t('dialogView.messageTokens') }}<br>
-              {{ $t('dialogView.tokenPrompt') }}：{{ usage.promptTokens }}，{{ $t('dialogView.tokenCompletion') }}：{{ usage.completionTokens }}
-            </q-tooltip>
-          </div>
-          <abortable-btn
-            icon="sym_o_send"
-            :label="$t('dialogView.send')"
-            @click="send"
-            @abort="abortController?.abort()"
-            :loading="!!messageMap[chain.at(-2)]?.generatingSession"
-            ml-4
-            min-h="40px"
-          />
-        </div>
-        <div
-          flex
-          v-if="assistant"
-          v-show="showVars"
-        >
-          <prompt-var-input
-            class="mt-2 mr-2"
-            v-for="promptVar of assistant.promptVars"
-            :key="promptVar.id"
-            :prompt-var="promptVar"
-            v-model="dialog.inputVars[promptVar.name]"
-            :input-props="{
-              dense: true,
-              outlined: true
-            }"
-            component="input"
-          />
-        </div>
-        <a-input
+        <DialogScrollButtons
+          :scroll-container="scrollContainer"
+        />
+
+        <MessageInput
           ref="messageInput"
-          class="mt-2"
-          max-h-50vh
-          of-y-auto
           :model-value="inputMessageContent?.text"
           @update:model-value="inputMessageContent && updateInputText($event)"
-          outlined
-          autogrow
-          clearable
-          :debounce="30"
-          :placeholder="$t('dialogView.chatPlaceholder')"
-          @keydown.enter="onEnter"
-          @paste="onTextPaste"
+          :input-items="inputContentItems"
+          :assistant="assistant"
+          :model="model"
+          :sdk-model="sdkModel"
+          :show-vars="showVars"
+          :active-plugins="activePlugins"
+          :usage="usage"
+          :loading="!!messageMap[chain.at(-2)]?.generatingSession"
+          :prompt-vars-model="dialog.inputVars"
+          @update:prompt-vars-model="dialog.inputVars = $event"
+          @send="send"
+          @abort="abortController?.abort()"
+          @add-input-items="addInputItems"
+          @remove-item="removeItem"
+          @toggle-vars="showVars = !showVars"
         />
       </div>
     </q-page>
@@ -392,50 +88,39 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onUnmounted, provide, ref, Ref, toRaw, toRef, watch, nextTick } from 'vue'
+import { computed, inject, provide, ref, Ref, toRaw, toRef, watch, nextTick } from 'vue'
 import { db } from 'src/utils/db'
 import { useLiveQueryWithDeps } from 'src/composables/live-query'
-import { almostEqual, displayLength, genId, isPlatformEnabled, isTextFile, JSONEqual, mimeTypeMatch, pageFhStyle, textBeginning, wrapCode, wrapQuote } from 'src/utils/functions'
+import { displayLength, genId, isPlatformEnabled, JSONEqual, mimeTypeMatch, pageFhStyle, wrapQuote } from 'src/utils/functions'
 import { useAssistantsStore } from 'src/stores/assistants'
 import { streamText, CoreMessage, generateText, tool, jsonSchema, StreamTextResult, GenerateTextResult } from 'ai'
 import { throttle, useQuasar } from 'quasar'
-import AssistantItem from 'src/components/AssistantItem.vue'
 import { DialogContent, ExtractArtifactPrompt, ExtractArtifactResult, GenDialogTitle, NameArtifactPrompt, PluginsPrompt } from 'src/utils/templates'
 import sessions from 'src/utils/sessions'
-import PromptVarInput from 'src/components/PromptVarInput.vue'
 import { MessageContent, PluginApi, ApiCallError, Plugin, Dialog, Message, Workspace, UserMessageContent, StoredItem, ModelSettings, ApiResultItem, Artifact, ConvertArtifactOptions, AssistantMessageContent } from 'src/utils/types'
 import { usePluginsStore } from 'src/stores/plugins'
 import MessageItem from 'src/components/MessageItem.vue'
-import { scaleBlob } from 'src/utils/image-process'
-import MessageImage from 'src/components/MessageImage.vue'
 import { engine } from 'src/utils/template-engine'
 import { useCallApi } from 'src/composables/call-api'
 import { until } from '@vueuse/core'
-import ViewCommonHeader from 'src/components/ViewCommonHeader.vue'
 import { syncRef } from 'src/composables/sync-ref'
 import { useUserPerfsStore } from 'src/stores/user-perfs'
-import ModelItem from 'src/components/ModelItem.vue'
-import ParseFilesDialog from 'src/components/ParseFilesDialog.vue'
-import MessageFile from 'src/components/MessageFile.vue'
-import { dialogOptions, InputTypes, models } from 'src/utils/values'
+import { dialogOptions } from 'src/utils/values'
 import { useUserDataStore } from 'src/stores/user-data'
 import ErrorNotFound from 'src/pages/ErrorNotFound.vue'
 import { useRoute, useRouter } from 'vue-router'
-import AbortableBtn from 'src/components/AbortableBtn.vue'
-import { MaxMessageFileSizeMB } from 'src/utils/config'
-import ATip from 'src/components/ATip.vue'
 import { useListenKey } from 'src/composables/listen-key'
 import { useSetTitle } from 'src/composables/set-title'
 import { useCreateArtifact } from 'src/composables/create-artifact'
 import artifactsPlugin from 'src/utils/artifacts-plugin'
-import ModelOptionsBtn from 'src/components/ModelOptionsBtn.vue'
-import AddInfoBtn from 'src/components/AddInfoBtn.vue'
 import { useI18n } from 'vue-i18n'
 import Mark from 'mark.js'
 import { useCreateDialog } from 'src/composables/create-dialog'
-import EnablePluginsMenu from 'src/components/EnablePluginsMenu.vue'
 import { useGetModel } from 'src/composables/get-model'
 import { useUiStateStore } from 'src/stores/ui-state'
+import DialogHeader from 'src/components/DialogHeader.vue'
+import MessageInput from 'src/components/MessageInput.vue'
+import DialogScrollButtons from 'src/components/DialogScrollButtons.vue'
 
 const { t, locale } = useI18n()
 
@@ -461,9 +146,7 @@ const dialog = syncRef<Dialog>(
 )
 const assistantsStore = useAssistantsStore()
 const workspace: Ref<Workspace> = inject('workspace')
-const assistants = computed(() => assistantsStore.assistants.filter(
-  a => [workspace.value.id, '$root'].includes(a.workspaceId)
-))
+// Assistants list now handled in DialogHeader component
 const assistant = computed(() => ({ ...assistantsStore.assistants.find(a => a.id === dialog.value?.assistantId) })) // force trigger updates
 provide('dialog', dialog)
 
@@ -606,51 +289,6 @@ provide('messageMap', messageMap)
 provide('itemMap', itemMap)
 const inputEmpty = computed(() => !inputMessageContent.value?.text && !inputMessageContent.value?.items.length)
 
-function onTextPaste(ev: ClipboardEvent) {
-  if (!perfs.codePasteOptimize) return
-  const { clipboardData } = ev
-  const i = clipboardData.types.findIndex(t => t === 'vscode-editor-data')
-  if (i !== -1) {
-    const code = clipboardData.getData('text/plain')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-    if (!/\n/.test(code)) return
-    const data = clipboardData.getData('vscode-editor-data')
-    const lang = JSON.parse(data).mode ?? ''
-    if (lang === 'markdown') return
-    const wrappedCode = wrapCode(code, lang)
-    document.execCommand('insertText', false, wrappedCode)
-    ev.preventDefault()
-  }
-}
-
-const imageInput = ref()
-const fileInput = ref()
-function onInputFiles({ target }) {
-  const files = target.files
-  parseFiles(Array.from(files))
-  target.value = ''
-}
-function onPaste(ev: ClipboardEvent) {
-  const { clipboardData } = ev
-  if (clipboardData.types.includes('text/plain')) {
-    if (
-      !['TEXTAREA', 'INPUT'].includes(document.activeElement.tagName) &&
-      !['true', 'plaintext-only'].includes((document.activeElement as HTMLElement).contentEditable)
-    ) {
-      const text = clipboardData.getData('text/plain')
-      addInputItems([{
-        type: 'text',
-        name: t('dialogView.pastedText', { text: textBeginning(text, 12) }),
-        contentText: text
-      }])
-    }
-    return
-  }
-  parseFiles(Array.from(clipboardData.files) as File[])
-}
-addEventListener('paste', onPaste)
-onUnmounted(() => removeEventListener('paste', onPaste))
 async function removeItem({ id, references }: StoredItem) {
   const items = [...inputMessageContent.value.items]
   items.splice(items.indexOf(id), 1)
@@ -665,47 +303,7 @@ async function removeItem({ id, references }: StoredItem) {
     references === 0 ? db.items.delete(id) : db.items.update(id, { references })
   })
 }
-async function parseFiles(files: File[]) {
-  if (!files.length) return
-  const textFiles = []
-  const supportedFiles = []
-  const otherFiles = []
-  for (const file of files) {
-    if (await isTextFile(file)) textFiles.push(file)
-    else if (mimeTypeMatch(file.type, model.value.inputTypes.user)) supportedFiles.push(file)
-    else otherFiles.push(file)
-  }
 
-  const parsedFiles: ApiResultItem[] = []
-  for (const file of textFiles) {
-    parsedFiles.push({
-      type: 'text',
-      name: file.name,
-      contentText: await file.text()
-    })
-  }
-  for (const file of supportedFiles) {
-    if (file.size > MaxMessageFileSizeMB * 1024 * 1024) {
-      $q.notify({ message: t('dialogView.fileTooLarge', { maxSize: MaxMessageFileSizeMB }), color: 'negative' })
-      continue
-    }
-    const f = file.type.startsWith('image/') && file.size > 512 * 1024 ? await scaleBlob(file, 2048 * 2048) : file
-    parsedFiles.push({
-      type: 'file',
-      name: file.name,
-      mimeType: file.type,
-      contentBuffer: await f.arrayBuffer()
-    })
-  }
-  addInputItems(parsedFiles)
-
-  otherFiles.length && $q.dialog({
-    component: ParseFilesDialog,
-    componentProps: { files: otherFiles, plugins: assistant.value.plugins }
-  }).onOk((files: ApiResultItem[]) => {
-    addInputItems(files)
-  })
-}
 function quote(item: ApiResultItem) {
   if (displayLength(item.contentText) > 200) {
     addInputItems([item])
@@ -883,7 +481,7 @@ async function send() {
     await db.messages.update(target, { status: 'default' })
     until(chain).changed().then(() => {
       nextTick().then(() => {
-        scroll('bottom')
+        scrollContainer.value?.scrollTo({ top: scrollContainer.value.scrollHeight, behavior: 'smooth' })
       })
     })
     await stream(target, false)
@@ -1090,7 +688,12 @@ function scrollListener() {
   lastScrollTop = container.scrollTop
 }
 function lockBottom() {
-  lockingBottom.value && scroll('bottom', 'auto')
+  if (lockingBottom.value && scrollContainer.value) {
+    scrollContainer.value.scrollTo({
+      top: scrollContainer.value.scrollHeight,
+      behavior: 'auto'
+    })
+  }
 }
 watch(lockingBottom, val => {
   if (val) {
@@ -1151,7 +754,7 @@ watch(route, to => {
         await until(chain).changed()
       }
       await nextTick()
-      const { items } = getEls()
+      const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
       const item = items[route.length - 1]
       if (highlight) {
         const mark = new Mark(item)
@@ -1164,35 +767,19 @@ watch(route, to => {
   })
 }, { immediate: true })
 
-function onEnter(ev) {
-  if (perfs.sendKey === 'ctrl+enter') {
-    ev.ctrlKey && send()
-  } else if (perfs.sendKey === 'shift+enter') {
-    ev.shiftKey && send()
-  } else {
-    if (ev.ctrlKey) document.execCommand('insertText', false, '\n')
-    else if (!ev.shiftKey) send()
-  }
-}
-
 const showVars = ref(true)
 
 const scrollContainer = ref<HTMLElement>()
-function getEls() {
-  const container = scrollContainer.value
-  const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
-  return { container, items }
-}
-function itemInView(item: HTMLElement, container: HTMLElement) {
-  return item.offsetTop <= container.scrollTop + container.clientHeight &&
-  item.offsetTop + item.clientHeight > container.scrollTop
-}
 function switchTo(target: 'prev' | 'next' | 'first' | 'last') {
-  const { container, items } = getEls()
-  const index = items.findIndex((item, i) =>
-    itemInView(item, container) &&
-    dialog.value.msgTree[chain.value[i]].length > 1
-  )
+  const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
+  const container = scrollContainer.value
+  if (!container) return
+
+  const index = items.findIndex((item, i) => {
+    const isVisible = item.offsetTop <= container.scrollTop + container.clientHeight &&
+                      item.offsetTop + item.clientHeight > container.scrollTop
+    return isVisible && dialog.value.msgTree[chain.value[i]].length > 1
+  })
   if (index === -1) return
 
   const id = chain.value[index]
@@ -1211,101 +798,73 @@ function switchTo(target: 'prev' | 'next' | 'first' | 'last') {
   if (to < 0 || to >= num || to === curr) return
   switchChain(index, to)
 }
-function scroll(action: 'up' | 'down' | 'top' | 'bottom', behavior: 'smooth' | 'auto' = 'smooth') {
-  const { container, items } = getEls()
-  if (action === 'top') {
-    container.scrollTo({ top: 0, behavior })
-    return
-  } else if (action === 'bottom') {
-    container.scrollTo({ top: container.scrollHeight, behavior })
-    return
-  }
 
-  // Get current position
-  const index = items.findIndex(item => itemInView(item, container))
-  const itemTypes = items.map(i => i.clientHeight > container.clientHeight ? 'partial' : 'entire')
-  let position: 'start' | 'inner' | 'end' | 'out'
-  const item = items[index]
-  const type = itemTypes[index]
-  if (type === 'partial') {
-    if (almostEqual(container.scrollTop, item.offsetTop, 5)) {
-      position = 'start'
-    } else if (almostEqual(container.scrollTop + container.clientHeight, item.offsetTop + item.clientHeight, 5)) {
-      position = 'end'
-    } else if (container.scrollTop + container.clientHeight < item.offsetTop + item.clientHeight) {
-      position = 'inner'
-    } else {
-      position = 'out'
-    }
-  } else {
-    if (almostEqual(container.scrollTop, item.offsetTop, 5)) {
-      position = 'start'
-    } else {
-      position = 'out'
-    }
-  }
-
-  // Scroll
-  let top
-  if (type === 'entire') {
-    if (action === 'up') {
-      if (position === 'start') {
-        if (index === 0) return
-        top = itemTypes[index - 1] === 'entire'
-          ? items[index - 1].offsetTop
-          : items[index - 1].offsetTop + items[index - 1].clientHeight - container.clientHeight
-      } else {
-        top = item.offsetTop
-      }
-    } else {
-      if (index === items.length - 1) return
-      top = items[index + 1].offsetTop
-    }
-  } else {
-    if (action === 'up') {
-      if (position === 'start') {
-        if (index === 0) return
-        top = itemTypes[index - 1] === 'entire'
-          ? items[index - 1].offsetTop
-          : items[index - 1].offsetTop + items[index - 1].clientHeight - container.clientHeight
-      } else if (position === 'out') {
-        top = item.offsetTop + item.clientHeight - container.clientHeight
-      } else {
-        top = item.offsetTop
-      }
-    } else {
-      if (position === 'end' || position === 'out') {
-        if (index === items.length - 1) return
-        top = items[index + 1].offsetTop
-      } else {
-        top = item.offsetTop + item.clientHeight - container.clientHeight
-      }
-    }
-  }
-  container.scrollTo({ top: top + 2, behavior: 'smooth' })
-}
 function regenerateCurr() {
-  const { container, items } = getEls()
+  const container = scrollContainer.value
+  if (!container) return
+
+  const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
   const index = items.findIndex(
-    (item, i) => itemInView(item, container) && messageMap.value[chain.value[i + 1]].type === 'assistant'
+    (item, i) => {
+      const isVisible = item.offsetTop <= container.scrollTop + container.clientHeight &&
+                        item.offsetTop + item.clientHeight > container.scrollTop
+      return isVisible && messageMap.value[chain.value[i + 1]].type === 'assistant'
+    }
   )
   if (index === -1) return
   regenerate(index + 1)
 }
 function editCurr() {
-  const { container, items } = getEls()
+  const container = scrollContainer.value
+  if (!container) return
+
+  const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
   const index = items.findIndex(
-    (item, i) => itemInView(item, container) && messageMap.value[chain.value[i + 1]].type === 'user'
+    (item, i) => {
+      const isVisible = item.offsetTop <= container.scrollTop + container.clientHeight &&
+                        item.offsetTop + item.clientHeight > container.scrollTop
+      return isVisible && messageMap.value[chain.value[i + 1]].type === 'user'
+    }
   )
   if (index === -1) return
   edit(index + 1)
 }
 const { perfs } = useUserPerfsStore()
 if (isPlatformEnabled(perfs.enableShortcutKey)) {
-  useListenKey(toRef(perfs, 'scrollUpKeyV2'), () => scroll('up'))
-  useListenKey(toRef(perfs, 'scrollDownKeyV2'), () => scroll('down'))
-  useListenKey(toRef(perfs, 'scrollTopKey'), () => scroll('top'))
-  useListenKey(toRef(perfs, 'scrollBottomKey'), () => scroll('bottom'))
+  useListenKey(toRef(perfs, 'scrollUpKeyV2'), () => {
+    if (scrollContainer.value) {
+      // Simple version for keyboard shortcuts
+      const container = scrollContainer.value
+      const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
+      const visibleIndex = items.findIndex(item =>
+        item.offsetTop > container.scrollTop &&
+        item.offsetTop < container.scrollTop + container.clientHeight
+      )
+      if (visibleIndex > 0) {
+        container.scrollTo({ top: items[visibleIndex - 1].offsetTop, behavior: 'smooth' })
+      }
+    }
+  })
+  useListenKey(toRef(perfs, 'scrollDownKeyV2'), () => {
+    if (scrollContainer.value) {
+      // Simple version for keyboard shortcuts
+      const container = scrollContainer.value
+      const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
+      const visibleIndex = items.findIndex(item =>
+        item.offsetTop > container.scrollTop &&
+        item.offsetTop < container.scrollTop + container.clientHeight
+      )
+      if (visibleIndex !== -1 && visibleIndex < items.length - 1) {
+        container.scrollTo({ top: items[visibleIndex + 1].offsetTop, behavior: 'smooth' })
+      }
+    }
+  })
+  useListenKey(toRef(perfs, 'scrollTopKey'), () => {
+    scrollContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
+  })
+  useListenKey(toRef(perfs, 'scrollBottomKey'), () => {
+    scrollContainer.value?.scrollTo({ top: scrollContainer.value.scrollHeight, behavior: 'smooth' })
+  })
   useListenKey(toRef(perfs, 'switchPrevKeyV2'), () => switchTo('prev'))
   useListenKey(toRef(perfs, 'switchNextKeyV2'), () => switchTo('next'))
   useListenKey(toRef(perfs, 'switchFirstKey'), () => switchTo('first'))
