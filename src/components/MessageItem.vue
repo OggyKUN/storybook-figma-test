@@ -138,6 +138,13 @@
             my-2
             :class="colMode ? 'mx-4' : 'mx-2'"
           />
+          <CyberlinkResult
+            v-if="message.status !== 'processed' && content.type === 'assistant-tool' && content.name === 'create_cyberlink' && content.status === 'completed'"
+            :result="content.result"
+            :message="message"
+            :key="'cyberlink-' + index"
+            class="my-2"
+          />
         </div>
         <div
           text-err
@@ -321,6 +328,7 @@ import { useAssistantsStore } from 'src/stores/assistants'
 import { useUserPerfsStore } from 'src/stores/user-perfs'
 import MessageImage from './MessageImage.vue'
 import ToolContent from './ToolContent.vue'
+import CyberlinkResult from './CyberlinkResult.vue'
 import { copyToClipboard, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import PickAvatarDialog from './PickAvatarDialog.vue'
@@ -339,7 +347,6 @@ const props = defineProps<{
   childNum: number,
   scrollContainer: HTMLElement
 }>()
-
 const mdId = `md-${genId()}`
 
 const $q = useQuasar()

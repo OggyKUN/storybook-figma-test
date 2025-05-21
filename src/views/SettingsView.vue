@@ -11,6 +11,16 @@
         max-w="1000px"
         mx-a
       >
+        <q-item>
+          <q-item-section>
+            <q-item-label>
+              Link Kepler Wallet
+            </q-item-label>
+          </q-item-section>
+          <q-item-section>
+            <KeplerWallet />
+          </q-item-section>
+        </q-item>
         <q-item-label
           header
           id="default-provider"
@@ -529,6 +539,7 @@ import GetModelList from 'src/components/GetModelList.vue'
 import ViewCommonHeader from 'src/components/ViewCommonHeader.vue'
 import ModelDragSortDialog from 'src/components/ModelDragSortDialog.vue'
 import { useGetModel } from 'src/composables/get-model'
+import KeplerWallet from 'src/components/KeplerWallet.vue'
 
 defineEmits(['toggle-drawer'])
 

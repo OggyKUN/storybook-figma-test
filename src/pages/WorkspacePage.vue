@@ -99,7 +99,7 @@
             round
             icon="sym_o_home"
             :to="`/workspaces/${id}`"
-            :class="{'route-active': $route.path === `/workspaces/${id}`}"
+            :class="{'route-active': route.path === `/workspaces/${id}`}"
             :title="$t('workspacePage.workspaceHome')"
           />
           <q-btn
@@ -108,7 +108,7 @@
             round
             icon="sym_o_settings"
             :to="`/workspaces/${id}/settings`"
-            :class="{'route-active': $route.path === `/workspaces/${id}/settings`}"
+            :class="{'route-active': route.path === `/workspaces/${id}/settings`}"
             :title="$t('workspacePage.workspaceSettings')"
           />
         </div>
@@ -127,6 +127,14 @@
             of-y-auto
           />
         </template>
+        <q-separator />
+        <chats-expansion
+          :workspace-id="workspace.id"
+          :model-value="workspace.listOpen.chats"
+          @update:model-value="setListOpen('chats', $event)"
+          max-h="40vh"
+          of-y-auto
+        />
         <q-separator />
         <dialogs-expansion
           :workspace-id="workspace.id"
@@ -164,7 +172,7 @@ import DragableSeparator from 'src/components/DragableSeparator.vue'
 import ArtifactItemIcon from 'src/components/ArtifactItemIcon.vue'
 import { useUserPerfsStore } from 'src/stores/user-perfs'
 import DialogsExpansion from 'src/components/DialogsExpansion.vue'
-
+import ChatsExpansion from 'src/components/social/ChatsExpansion.vue'
 const props = defineProps<{
   id: string
 }>()

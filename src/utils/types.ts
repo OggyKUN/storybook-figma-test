@@ -408,6 +408,7 @@ interface Workspace {
     assistants: boolean
     artifacts: boolean
     dialogs: boolean
+    chats: boolean
   }
 }
 
@@ -426,9 +427,10 @@ interface Message {
   id: string
   type: 'user' | 'assistant'
   assistantId?: string
+  workspaceId?: string
   dialogId: string
   contents: MessageContent[]
-  status: 'pending' | 'streaming' | 'failed' | 'default' | 'inputing'
+  status: 'pending' | 'streaming' | 'failed' | 'default' | 'inputing' | 'processed'
   generatingSession?: string
   error?: string
   warnings?: string[]

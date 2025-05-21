@@ -233,7 +233,6 @@ export class SSEClientTransport implements Transport {
         body: JSON.stringify(message),
         signal: this._abortController?.signal
       }
-
       const response = await this._fetch(this._endpoint, init)
       if (!response.ok) {
         if (response.status === 401 && this._authProvider) {
