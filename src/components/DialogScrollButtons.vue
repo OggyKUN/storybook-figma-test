@@ -15,21 +15,24 @@
       dense
       icon="sym_o_first_page"
       rotate-90
-      @click="scroll('top')"
+      :title="t('shortcutKeysView.scrollToTop')"
+      @click="scrollToTop"
     />
     <q-btn
       flat
       round
       dense
       icon="sym_o_keyboard_arrow_up"
-      @click="scroll('up')"
+      :title="t('shortcutKeysView.scrollUp')"
+      @click="scrollUp"
     />
     <q-btn
       flat
       round
       dense
       icon="sym_o_keyboard_arrow_down"
-      @click="scroll('down')"
+      :title="t('shortcutKeysView.scrollDown')"
+      @click="scrollDown"
     />
     <q-btn
       flat
@@ -37,107 +40,85 @@
       dense
       icon="sym_o_last_page"
       rotate-90
-      @click="scroll('bottom')"
+      :title="t('shortcutKeysView.scrollToBottom')"
+      @click="scrollToBottom"
     />
   </div>
 </template>
 
 <script setup lang="ts">
+import { toRef } from 'vue'
 import { useUserPerfsStore } from 'src/stores/user-perfs'
-import { isPlatformEnabled, almostEqual } from 'src/utils/functions'
+import { useListenKey } from 'src/composables/listen-key'
+import { isPlatformEnabled } from 'src/utils/functions'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+const { perfs } = useUserPerfsStore()
 
 const props = defineProps<{
   scrollContainer: HTMLElement | null
 }>()
 
-const { perfs } = useUserPerfsStore()
+const emit = defineEmits<{
+  switchTo: [target: 'prev' | 'next' | 'first' | 'last']
+  regenerateCurr: []
+  editCurr: []
+  focusInput: []
+}>()
 
-function getEls() {
+// Basic scroll functions
+function scrollToTop() {
+  props.scrollContainer?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function scrollToBottom() {
+  props.scrollContainer?.scrollTo({
+    top: props.scrollContainer.scrollHeight,
+    behavior: 'smooth'
+  })
+}
+
+function scrollUp() {
+  if (!props.scrollContainer) return
+
   const container = props.scrollContainer
   const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
-  return { container, items }
+  const visibleIndex = items.findIndex(item =>
+    item.offsetTop > container.scrollTop &&
+    item.offsetTop < container.scrollTop + container.clientHeight
+  )
+  if (visibleIndex > 0) {
+    container.scrollTo({ top: items[visibleIndex - 1].offsetTop, behavior: 'smooth' })
+  }
 }
 
-function itemInView(item: HTMLElement, container: HTMLElement) {
-  return item.offsetTop <= container.scrollTop + container.clientHeight &&
-  item.offsetTop + item.clientHeight > container.scrollTop
+function scrollDown() {
+  if (!props.scrollContainer) return
+
+  const container = props.scrollContainer
+  const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
+  const visibleIndex = items.findIndex(item =>
+    item.offsetTop > container.scrollTop &&
+    item.offsetTop < container.scrollTop + container.clientHeight
+  )
+  if (visibleIndex !== -1 && visibleIndex < items.length - 1) {
+    container.scrollTo({ top: items[visibleIndex + 1].offsetTop, behavior: 'smooth' })
+  }
 }
 
-function scroll(action: 'up' | 'down' | 'top' | 'bottom', behavior: 'smooth' | 'auto' = 'smooth') {
-  const { container, items } = getEls()
-  if (!container) return
-
-  if (action === 'top') {
-    container.scrollTo({ top: 0, behavior })
-    return
-  } else if (action === 'bottom') {
-    container.scrollTo({ top: container.scrollHeight, behavior })
-    return
-  }
-
-  // Get current position
-  const index = items.findIndex(item => itemInView(item, container))
-  if (index === -1) return
-
-  const itemTypes = items.map(i => i.clientHeight > container.clientHeight ? 'partial' : 'entire')
-  let position: 'start' | 'inner' | 'end' | 'out'
-  const item = items[index]
-  const type = itemTypes[index]
-  if (type === 'partial') {
-    if (almostEqual(container.scrollTop, item.offsetTop, 5)) {
-      position = 'start'
-    } else if (almostEqual(container.scrollTop + container.clientHeight, item.offsetTop + item.clientHeight, 5)) {
-      position = 'end'
-    } else if (container.scrollTop + container.clientHeight < item.offsetTop + item.clientHeight) {
-      position = 'inner'
-    } else {
-      position = 'out'
-    }
-  } else {
-    if (almostEqual(container.scrollTop, item.offsetTop, 5)) {
-      position = 'start'
-    } else {
-      position = 'out'
-    }
-  }
-
-  // Scroll
-  let top
-  if (type === 'entire') {
-    if (action === 'up') {
-      if (position === 'start') {
-        if (index === 0) return
-        top = itemTypes[index - 1] === 'entire'
-          ? items[index - 1].offsetTop
-          : items[index - 1].offsetTop + items[index - 1].clientHeight - container.clientHeight
-      } else {
-        top = item.offsetTop
-      }
-    } else {
-      if (index === items.length - 1) return
-      top = items[index + 1].offsetTop
-    }
-  } else {
-    if (action === 'up') {
-      if (position === 'start') {
-        if (index === 0) return
-        top = itemTypes[index - 1] === 'entire'
-          ? items[index - 1].offsetTop
-          : items[index - 1].offsetTop + items[index - 1].clientHeight - container.clientHeight
-      } else if (position === 'out') {
-        top = item.offsetTop + item.clientHeight - container.clientHeight
-      } else {
-        top = item.offsetTop
-      }
-    } else {
-      if (position === 'end' || position === 'out') {
-        if (index === items.length - 1) return
-        top = items[index + 1].offsetTop
-      } else {
-        top = item.offsetTop + item.clientHeight - container.clientHeight
-      }
-    }
-  }
-  container.scrollTo({ top: top + 2, behavior: 'smooth' })
+// Keyboard shortcuts
+if (isPlatformEnabled(perfs.enableShortcutKey)) {
+  useListenKey(toRef(perfs, 'scrollUpKeyV2'), scrollUp)
+  useListenKey(toRef(perfs, 'scrollDownKeyV2'), scrollDown)
+  useListenKey(toRef(perfs, 'scrollTopKey'), scrollToTop)
+  useListenKey(toRef(perfs, 'scrollBottomKey'), scrollToBottom)
+  useListenKey(toRef(perfs, 'switchPrevKeyV2'), () => emit('switchTo', 'prev'))
+  useListenKey(toRef(perfs, 'switchNextKeyV2'), () => emit('switchTo', 'next'))
+  useListenKey(toRef(perfs, 'switchFirstKey'), () => emit('switchTo', 'first'))
+  useListenKey(toRef(perfs, 'switchLastKey'), () => emit('switchTo', 'last'))
+  useListenKey(toRef(perfs, 'regenerateCurrKey'), () => emit('regenerateCurr'))
+  useListenKey(toRef(perfs, 'editCurrKey'), () => emit('editCurr'))
+  useListenKey(toRef(perfs, 'focusDialogInputKey'), () => emit('focusInput'))
 }
 </script>

@@ -59,6 +59,10 @@
       >
         <DialogScrollButtons
           :scroll-container="scrollContainer"
+          @switch-to="switchTo"
+          @regenerate-curr="regenerateCurr"
+          @edit-curr="editCurr"
+          @focus-input="focusInput"
         />
 
         <MessageInput
@@ -770,6 +774,7 @@ watch(route, to => {
 const showVars = ref(true)
 
 const scrollContainer = ref<HTMLElement>()
+
 function switchTo(target: 'prev' | 'next' | 'first' | 'last') {
   const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
   const container = scrollContainer.value
@@ -814,6 +819,7 @@ function regenerateCurr() {
   if (index === -1) return
   regenerate(index + 1)
 }
+
 function editCurr() {
   const container = scrollContainer.value
   if (!container) return
@@ -830,49 +836,6 @@ function editCurr() {
   edit(index + 1)
 }
 const { perfs } = useUserPerfsStore()
-if (isPlatformEnabled(perfs.enableShortcutKey)) {
-  useListenKey(toRef(perfs, 'scrollUpKeyV2'), () => {
-    if (scrollContainer.value) {
-      // Simple version for keyboard shortcuts
-      const container = scrollContainer.value
-      const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
-      const visibleIndex = items.findIndex(item =>
-        item.offsetTop > container.scrollTop &&
-        item.offsetTop < container.scrollTop + container.clientHeight
-      )
-      if (visibleIndex > 0) {
-        container.scrollTo({ top: items[visibleIndex - 1].offsetTop, behavior: 'smooth' })
-      }
-    }
-  })
-  useListenKey(toRef(perfs, 'scrollDownKeyV2'), () => {
-    if (scrollContainer.value) {
-      // Simple version for keyboard shortcuts
-      const container = scrollContainer.value
-      const items: HTMLElement[] = Array.from(document.querySelectorAll('.message-item'))
-      const visibleIndex = items.findIndex(item =>
-        item.offsetTop > container.scrollTop &&
-        item.offsetTop < container.scrollTop + container.clientHeight
-      )
-      if (visibleIndex !== -1 && visibleIndex < items.length - 1) {
-        container.scrollTo({ top: items[visibleIndex + 1].offsetTop, behavior: 'smooth' })
-      }
-    }
-  })
-  useListenKey(toRef(perfs, 'scrollTopKey'), () => {
-    scrollContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
-  })
-  useListenKey(toRef(perfs, 'scrollBottomKey'), () => {
-    scrollContainer.value?.scrollTo({ top: scrollContainer.value.scrollHeight, behavior: 'smooth' })
-  })
-  useListenKey(toRef(perfs, 'switchPrevKeyV2'), () => switchTo('prev'))
-  useListenKey(toRef(perfs, 'switchNextKeyV2'), () => switchTo('next'))
-  useListenKey(toRef(perfs, 'switchFirstKey'), () => switchTo('first'))
-  useListenKey(toRef(perfs, 'switchLastKey'), () => switchTo('last'))
-  useListenKey(toRef(perfs, 'regenerateCurrKey'), () => regenerateCurr())
-  useListenKey(toRef(perfs, 'editCurrKey'), () => editCurr())
-  useListenKey(toRef(perfs, 'focusDialogInputKey'), () => focusInput())
-}
 
 async function genArtifactName(content: string, lang?: string) {
   const { text } = await generateText({

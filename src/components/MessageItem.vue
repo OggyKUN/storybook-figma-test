@@ -259,41 +259,13 @@
             :title="$t('messageItem.edit')"
             @click="$emit('edit')"
           />
-          <q-btn
-            icon="sym_o_more_vert"
-            round
-            flat
-            dense
-            text="sec xs"
-            un-size="32px"
-            :title="$t('messageItem.more')"
-          >
-            <q-menu>
-              <q-list>
-                <menu-item
-                  icon="sym_o_code"
-                  :label="$t('messageItem.showSourceCode')"
-                  @click="sourceCodeMode = !sourceCodeMode"
-                  :class="{ 'route-active': sourceCodeMode }"
-                />
-                <menu-item
-                  icon="sym_o_edit"
-                  :label="$t('messageItem.directEdit')"
-                  @click="edit"
-                />
-                <menu-item
-                  icon="sym_o_format_quote"
-                  :label="$t('messageItem.quote')"
-                  @click="quote(textContent.text)"
-                />
-                <menu-item
-                  icon="sym_o_info"
-                  :label="$t('messageItem.moreInfo')"
-                  @click="moreInfo"
-                />
-              </q-list>
-            </q-menu>
-          </q-btn>
+          <message-context-menu
+            :source-code-mode="sourceCodeMode"
+            @toggle-source-code="sourceCodeMode = !sourceCodeMode"
+            @edit="edit"
+            @quote="quote(textContent.text)"
+            @more-info="moreInfo"
+          />
         </template>
       </div>
     </div>
@@ -335,6 +307,7 @@ import PickAvatarDialog from './PickAvatarDialog.vue'
 import MessageFile from './MessageFile.vue'
 import { escapeRegex, genId, idDateString, isPlatformEnabled, textBeginning, wrapCode } from 'src/utils/functions'
 import MenuItem from './MenuItem.vue'
+import MessageContextMenu from './MessageContextMenu.vue'
 import MessageInfoDialog from './MessageInfoDialog.vue'
 import TextareaDialog from './TextareaDialog.vue'
 import { useMdPreviewProps } from 'src/composables/md-preview-props'
