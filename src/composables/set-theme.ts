@@ -91,7 +91,10 @@ export function useSetTheme() {
     Object.keys(colors).forEach((key) => {
       document.documentElement.style.setProperty(`--a-${key}`, hexFromArgb(colors[key]))
     })
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', hexFromArgb(colors['sur-c']))
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]')
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', hexFromArgb(colors['sur-c']))
+    }
     IsCapacitor && StatusBar.setStyle({ style: Dark.isActive ? Style.Dark : Style.Light })
     IsCapacitor && EdgeToEdge.setBackgroundColor({ color: hexFromArgb(colors['sur-c']) })
     uiStateStore.colors = colors
