@@ -14,6 +14,10 @@ import "quasar/dist/quasar.css";
 import "../src/css/app.scss";
 import "uno.css";
 
+// Import global components
+import AInput from "../src/components/global/AInput.js";
+import VarsInput from "../src/components/VarsInput.vue";
+
 // Define translations for use in stories
 const messages = {
   en: {
@@ -41,6 +45,16 @@ const messages = {
     "searchDialog.noResults": "No results found...",
     "searchDialog.workspace": "Workspace",
     "searchDialog.global": "Global",
+    "workspaceSettings.title": "Workspace Settings",
+    "workspaceSettings.defaultAssistant": "Default Assistant",
+    "workspaceSettings.avatar": "Workspace Icon",
+    "workspaceSettings.homeContent": "Home Content",
+    "workspaceSettings.variables": "Workspace Variables",
+    "workspaceSettings.inputPlaceholder": "Enter variable content...",
+    "assistantItem.unselected": "No assistant selected",
+    "assistantItem.global": "Global",
+    "varsInput.addVariable": "Add Variable",
+    "varsInput.variableName": "Variable Name"
   },
 };
 
@@ -66,6 +80,10 @@ setup((app) => {
       dark: true,
     },
   });
+
+  // Register global components
+  app.component('AInput', AInput);
+  app.component('VarsInput', VarsInput);
 
   if (!window.indexedDB) {
     const mockDB = {
